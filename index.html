@@ -1,0 +1,1051 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phantom — Peer-to-peer encrypted chat. No one in the middle.</title>
+<meta name="description" content="Phantom is decentralized end-to-end encrypted chat. Messages travel directly between machines, sealed with keys only you hold. No servers. No accounts.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════════════════════════════════
+   PHANTOM — landing
+   Design language: cryptographic test equipment. Panel bezels, engraved
+   labels, phosphor trace, calibration rulers. One loud thing (the scope),
+   everything else machined and quiet.
+   ════════════════════════════════════════════════════════════════════ */
+:root{
+  --void:#060609;
+  --panel:#0c0c12;
+  --bezel:#14141c;
+  --bezel-hi:#1d1d27;
+  --line:rgba(170,190,180,.09);
+  --line-hard:rgba(170,190,180,.18);
+  --phos:#00ff88;
+  --phos-dim:#56d49c;
+  --phos-glow:rgba(0,255,136,.45);
+  --steel:#b6bcc3;
+  --steel-dim:#6c737b;
+  --warn:#ff3b5c;
+  --display:'Chakra Petch',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --body:-apple-system,'Segoe UI',system-ui,sans-serif;
+  --eo:cubic-bezier(.23,1,.32,1);
+  --eio:cubic-bezier(.77,0,.175,1);
+  --maxw:1180px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--void);
+  color:var(--steel);
+  font-family:var(--body);
+  font-size:16px;line-height:1.6;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+html,body{max-width:100%}
+.hero .lede,.lede{max-width:min(54ch,100%)}
+::selection{background:var(--phos);color:#04140c}
+a{color:inherit}
+img,canvas,svg{display:block;max-width:100%}
+
+/* faint blueprint grid + vignette over the whole page */
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(0,255,136,.022) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,255,136,.022) 1px,transparent 1px);
+  background-size:56px 56px;
+}
+body::after{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(120% 90% at 50% 0%,transparent 55%,rgba(0,0,0,.55) 100%);
+}
+main,header,footer{position:relative;z-index:1}
+
+/* ── boot sequence ─────────────────────────────────────────────────── */
+#boot{
+  position:fixed;inset:0;z-index:100;background:var(--void);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  transition:opacity .5s var(--eo),visibility .5s;
+}
+#boot.off{opacity:0;visibility:hidden}
+.boot-inner{font-family:var(--mono);font-size:13px;color:var(--steel-dim);width:min(440px,86vw)}
+.boot-line{opacity:0;animation:bootline .15s var(--eo) forwards;white-space:nowrap;overflow:hidden}
+.boot-line b{color:var(--phos);font-weight:500}
+.boot-line .ok{color:var(--phos)}
+.boot-line:nth-child(1){animation-delay:.05s}
+.boot-line:nth-child(2){animation-delay:.25s}
+.boot-line:nth-child(3){animation-delay:.45s}
+.boot-line:nth-child(4){animation-delay:.62s}
+.boot-line:nth-child(5){animation-delay:.78s}
+.boot-line:nth-child(6){animation-delay:.95s}
+@keyframes bootline{to{opacity:1}}
+.boot-bar{height:2px;background:var(--bezel-hi);margin-top:14px;overflow:hidden;border-radius:1px}
+.boot-bar i{display:block;height:100%;width:0;background:var(--phos);
+  box-shadow:0 0 12px var(--phos-glow);animation:bootbar 1.05s var(--eio) .15s forwards}
+@keyframes bootbar{to{width:100%}}
+#boot .skip{position:absolute;bottom:26px;font-family:var(--mono);font-size:11px;
+  letter-spacing:.14em;color:var(--steel-dim);opacity:.6}
+
+/* ── nav rail ──────────────────────────────────────────────────────── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:50;
+  display:flex;align-items:center;gap:26px;
+  padding:0 clamp(16px,4vw,40px);height:56px;
+  background:rgba(6,6,9,.78);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:12px;letter-spacing:.12em;
+  transform:translateY(-100%);transition:transform .6s var(--eo) .1s;
+}
+body.booted nav{transform:none}
+.nv-logo{display:flex;align-items:center;gap:10px;color:var(--steel);text-decoration:none;font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.22em}
+.nv-logo .dot{width:8px;height:8px;border-radius:50%;background:var(--phos);box-shadow:0 0 10px var(--phos-glow);animation:pulse 2.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.nv-links{display:flex;gap:22px;margin-left:auto}
+.nv-links a{color:var(--steel-dim);text-decoration:none;transition:color .18s ease;padding:6px 2px}
+.nv-links a:hover,.nv-links a:focus-visible{color:var(--phos)}
+.nv-ver{color:var(--steel-dim);border:1px solid var(--line-hard);padding:4px 10px;border-radius:3px;font-size:11px}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--phos);outline-offset:2px;border-radius:2px}
+@media(max-width:760px){.nv-links{display:none}}
+
+/* ── shared primitives ─────────────────────────────────────────────── */
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+.eyebrow{
+  font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--phos);
+  display:inline-flex;align-items:center;gap:10px;margin-bottom:18px;
+}
+.eyebrow::before{content:"";width:26px;height:1px;background:var(--phos);opacity:.6}
+.eyebrow .hex{color:var(--steel-dim)}
+h1,h2,h3{font-family:var(--display);color:#e8ecef;font-weight:600;line-height:1.08}
+h2{font-size:clamp(28px,4.4vw,44px);letter-spacing:.01em;margin-bottom:18px}
+.lede{color:var(--steel);max-width:54ch;font-size:17px}
+.lede b{color:#e8ecef;font-weight:600}
+.mono{font-family:var(--mono)}
+
+/* engraved panel */
+.panel{
+  background:linear-gradient(180deg,var(--bezel) 0%,var(--panel) 100%);
+  border:1px solid var(--line-hard);
+  border-radius:8px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 18px 50px rgba(0,0,0,.5);
+  position:relative;
+}
+.panel .screws{position:absolute;inset:8px;pointer-events:none}
+.panel .screws i{position:absolute;width:5px;height:5px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#3a3f46,#101218 70%);box-shadow:inset 0 0 1px rgba(0,0,0,.9)}
+.panel .screws i:nth-child(1){top:0;left:0}.panel .screws i:nth-child(2){top:0;right:0}
+.panel .screws i:nth-child(3){bottom:0;left:0}.panel .screws i:nth-child(4){bottom:0;right:0}
+.plabel{
+  position:absolute;top:-9px;left:18px;background:var(--void);
+  font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--steel-dim);
+  padding:0 8px;
+}
+
+/* calibration ruler divider */
+.ruler{height:34px;margin:clamp(50px,9vh,90px) 0;position:relative;opacity:.85}
+.ruler svg{width:100%;height:100%}
+
+/* scroll reveal */
+.rv{opacity:0;transform:translateY(26px);transition:opacity .7s var(--eo),transform .7s var(--eo)}
+.rv.on{opacity:1;transform:none}
+.rv.d1{transition-delay:.08s}.rv.d2{transition-delay:.16s}.rv.d3{transition-delay:.24s}
+
+/* ── hero ──────────────────────────────────────────────────────────── */
+.hero{min-height:100svh;display:flex;align-items:center;padding:120px 0 70px;position:relative}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(30px,5vw,64px);align-items:center}
+.hero-grid>*{min-width:0}
+.hero-grid>div:first-child{position:relative;z-index:3}
+.hero-grid>.scope{position:relative;z-index:2}
+@media(max-width:980px){.hero-grid{grid-template-columns:1fr}}
+.hero h1{
+  font-size:clamp(40px,6.2vw,76px);letter-spacing:.005em;margin:14px 0 22px;
+  color:#eef2f4;
+}
+.hero h1 .ln{display:block;white-space:nowrap}
+@media(max-width:560px){.hero h1{font-size:clamp(34px,11vw,48px)}.hero h1 .ln{white-space:normal}}
+.hero h1 .hl{color:var(--phos);text-shadow:0 0 26px rgba(0,255,136,.28)}
+.hero .lede{margin-bottom:34px}
+.cta-row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.btn{
+  font-family:var(--mono);font-size:13px;letter-spacing:.1em;text-decoration:none;
+  padding:14px 26px;border-radius:5px;display:inline-flex;align-items:center;gap:10px;
+  transition:transform .15s var(--eo),box-shadow .2s ease,background .2s ease,color .2s ease;
+  border:1px solid transparent;cursor:pointer;
+}
+.btn:active{transform:scale(.97)}
+.btn-pri{background:var(--phos);color:#03140b;font-weight:600;box-shadow:0 0 0 rgba(0,255,136,0)}
+.btn-pri:hover{box-shadow:0 0 28px rgba(0,255,136,.35);transform:translateY(-1px)}
+.btn-sec{border-color:var(--line-hard);color:var(--steel)}
+.btn-sec:hover{border-color:var(--phos);color:var(--phos)}
+.hero-meta{margin-top:26px;font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;color:var(--steel-dim);display:flex;gap:18px;flex-wrap:wrap}
+.hero-meta span{display:inline-flex;align-items:center;gap:7px}
+.hero-meta i{width:5px;height:5px;background:var(--phos);border-radius:50%;display:inline-block;opacity:.8}
+
+/* the scope */
+.scope{padding:22px 22px 18px;--mx:50%;--my:50%}
+.scope::after{ /* cursor-follow phosphor sheen */
+  content:"";position:absolute;inset:0;border-radius:8px;pointer-events:none;
+  background:radial-gradient(340px 240px at var(--mx) var(--my),rgba(0,255,136,.05),transparent 70%);
+}
+.scope-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-family:var(--mono)}
+.scope-head .t{font-size:11px;letter-spacing:.22em;color:var(--steel-dim)}
+.scope-leds{display:flex;gap:8px}
+.led{width:7px;height:7px;border-radius:50%;background:#23282e}
+.led.on{background:var(--phos);box-shadow:0 0 8px var(--phos-glow)}
+.led.tx{background:#23282e;transition:background .12s,box-shadow .12s}
+.led.tx.hot{background:var(--warn);box-shadow:0 0 8px rgba(255,59,92,.6)}
+.crt{
+  position:relative;border-radius:6px;overflow:hidden;background:#050a08;
+  border:1px solid rgba(0,255,136,.16);
+  box-shadow:inset 0 0 60px rgba(0,255,136,.05),inset 0 0 6px rgba(0,0,0,.8);
+}
+.crt canvas{width:100%;height:230px}
+.crt .scan{position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px);mix-blend-mode:multiply}
+.scope-io{margin-top:16px;font-family:var(--mono)}
+.scope-io label{display:block;font-size:10px;letter-spacing:.22em;color:var(--steel-dim);margin-bottom:7px}
+.scope-io input{
+  width:100%;background:#08080e;border:1px solid var(--line-hard);border-radius:4px;
+  color:#e8ecef;font-family:var(--mono);font-size:14px;padding:12px 14px;
+  transition:border-color .2s ease,box-shadow .2s ease;caret-color:var(--phos);
+}
+.scope-io input::placeholder{color:#4a5158}
+.scope-io input:focus{border-color:var(--phos);box-shadow:0 0 0 3px rgba(0,255,136,.12);outline:none}
+.ct-line{
+  margin-top:12px;background:#070b09;border:1px solid rgba(0,255,136,.14);border-radius:4px;
+  padding:11px 14px;font-size:12.5px;color:var(--phos-dim);
+  white-space:nowrap;overflow:hidden;min-height:42px;display:flex;align-items:center;gap:10px;
+}
+.ct-line .tag{color:var(--steel-dim);font-size:10px;letter-spacing:.18em;flex-shrink:0}
+.ct-line .ct{overflow:hidden;text-overflow:clip;text-shadow:0 0 8px rgba(0,255,136,.25)}
+.scope-foot{display:flex;justify-content:space-between;margin-top:12px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--steel-dim)}
+.scope-foot b{color:var(--phos-dim);font-weight:500}
+
+/* hero entrance choreography */
+.hero .stagger{opacity:0;transform:translateY(22px);transition:opacity .8s var(--eo),transform .8s var(--eo)}
+body.booted .hero .stagger{opacity:1;transform:none}
+body.booted .hero .s1{transition-delay:.15s}
+body.booted .hero .s2{transition-delay:.30s}
+body.booted .hero .s3{transition-delay:.45s}
+body.booted .hero .s4{transition-delay:.58s}
+body.booted .hero .s5{transition-delay:.40s}
+
+/* ── protocol layout + rail ────────────────────────────────────────── */
+.proto{display:grid;grid-template-columns:210px 1fr;gap:clamp(28px,4vw,64px);align-items:start}
+.rail{
+  position:sticky;top:96px;font-family:var(--mono);font-size:12px;
+  display:flex;flex-direction:column;gap:4px;
+}
+.rail-t{font-size:10px;letter-spacing:.24em;color:var(--steel-dim);margin-bottom:12px}
+.rail a{
+  color:var(--steel-dim);text-decoration:none;letter-spacing:.06em;
+  padding:8px 12px;border-left:2px solid var(--line-hard);
+  transition:color .2s ease,border-color .25s var(--eo),background .2s ease,padding-left .25s var(--eo);
+}
+.rail a b{color:inherit;font-weight:500;margin-right:8px;opacity:.75}
+.rail a:hover{color:var(--steel)}
+.rail a.act{color:var(--phos);border-color:var(--phos);background:rgba(0,255,136,.05);padding-left:16px}
+.rail a.act b{opacity:1}
+.rail-note{margin-top:18px;font-size:10px;letter-spacing:.08em;color:#4a5158;line-height:1.7}
+@media(max-width:980px){.proto{grid-template-columns:1fr}.rail{display:none}}
+
+.pstep{padding:clamp(44px,8vh,84px) 0;border-bottom:1px dashed var(--line)}
+.pstep:last-child{border-bottom:none}
+.pstep .panel{margin-top:30px;padding:24px}
+.chat-meta{margin-top:16px;font-size:10px;letter-spacing:.18em;color:var(--steel-dim)}
+
+/* identity */
+.fp-label{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--steel-dim);margin-bottom:12px}
+.fp{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:clamp(22px,3.4vw,34px);font-weight:600;color:var(--phos);text-shadow:0 0 18px rgba(0,255,136,.25);margin-bottom:20px}
+.fp span{background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.18);border-radius:5px;padding:4px 12px}
+.fp-row{display:flex;gap:18px;align-items:center}
+.qr{width:74px;height:74px;flex-shrink:0;border:1px solid rgba(0,255,136,.25);border-radius:5px;padding:6px;background:#070b09}
+.qr i{display:block;width:100%;height:100%;
+  background:
+   conic-gradient(from 90deg at 50% 50%,transparent 25%,rgba(0,255,136,.9) 0 50%,transparent 0 75%,rgba(0,255,136,.9) 0) 0 0/14px 14px,
+   repeating-linear-gradient(0deg,rgba(0,255,136,.85) 0 4px,transparent 4px 9px),
+   repeating-linear-gradient(90deg,rgba(0,255,136,.85) 0 4px,transparent 4px 9px);
+  background-blend-mode:lighten;opacity:.85;image-rendering:pixelated}
+.fp-copy{font-size:14px;color:var(--steel);max-width:42ch}
+.fp-copy b{color:#e8ecef}
+
+/* chat mock */
+.chat-feed{display:flex;flex-direction:column;gap:12px;min-height:200px}
+.cmsg{display:flex;gap:12px;align-items:flex-start;opacity:0;transform:translateY(10px);transition:opacity .5s var(--eo),transform .5s var(--eo)}
+.cmsg.in{opacity:1;transform:none}
+.cmsg .av{width:30px;height:30px;border-radius:5px;flex-shrink:0;display:grid;place-items:center;font-family:var(--mono);font-size:11px;color:#04140c;background:var(--phos);font-weight:600}
+.cmsg.them .av{background:var(--bezel-hi);color:var(--phos-dim);border:1px solid var(--line-hard)}
+.cmsg .bd{font-size:14px;color:var(--steel)}
+.cmsg .nm{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--steel-dim);margin-bottom:3px}
+.cmsg .nm b{color:var(--phos-dim);font-weight:500}
+.cmsg .txt{font-family:var(--mono);font-size:13.5px}
+.cmsg .txt.pinned::after{content:" ⌖ pinned";color:var(--phos-dim);font-size:10px;letter-spacing:.1em}
+
+/* vu meter */
+.vu{display:flex;gap:5px;align-items:flex-end;height:120px;padding:8px 4px}
+.vu i{flex:1;background:linear-gradient(180deg,var(--phos),rgba(0,255,136,.25));border-radius:2px;
+  height:14%;transform-origin:bottom;animation:vubar 1.1s ease-in-out infinite alternate;opacity:.9}
+@keyframes vubar{from{height:8%}to{height:var(--h,70%)}}
+
+/* file chunks */
+.chunks{display:grid;grid-template-columns:repeat(32,1fr);gap:4px}
+.chunks i{aspect-ratio:1;background:var(--bezel-hi);border-radius:1.5px;transition:background .3s ease,box-shadow .3s ease}
+.chunks i.full{background:var(--phos);box-shadow:0 0 6px rgba(0,255,136,.4)}
+@media(max-width:640px){.chunks{grid-template-columns:repeat(16,1fr)}}
+
+/* sync packets */
+.sync-svg{width:100%;height:auto}
+.pkt{offset-rotate:0deg;opacity:0}
+.p1{animation:pktA 3.6s linear infinite}
+.p2{animation:pktB 3.6s linear infinite 1.2s}
+.p3{animation:pktA 3.6s linear infinite 2.4s}
+@keyframes pktA{0%{cx:60;opacity:0}8%{opacity:1}45%{cx:500;opacity:1}50%{opacity:0}100%{cx:500;opacity:0}}
+@keyframes pktB{0%{cx:500;opacity:0}8%{opacity:1}45%{cx:60;opacity:1}50%{opacity:0}100%{cx:60;opacity:0}}
+
+/* topology */
+.topo-head{max-width:720px;margin-bottom:44px}
+.topo-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media(max-width:860px){.topo-grid{grid-template-columns:1fr}}
+.topo-card{padding:24px}
+.topo-card svg{width:100%;height:auto;margin-bottom:14px}
+.topo-list{list-style:none;font-family:var(--mono);font-size:12.5px;letter-spacing:.04em;display:flex;flex-direction:column;gap:8px;color:var(--steel-dim)}
+.topo-list li::before{content:"✕  ";color:var(--warn)}
+.topo-list.good li::before{content:"✓  ";color:var(--phos)}
+.topo-list.good{color:var(--steel)}
+.flow-bad{animation:dash 1.4s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-16}}
+.topo-pkt{animation:topopkt 2.8s var(--eio) infinite}
+@keyframes topopkt{
+  0%{opacity:0;transform:translate(59px,104px)}
+  10%{opacity:1}
+  48%{transform:translate(160px,84px)}
+  90%{opacity:1;transform:translate(261px,104px)}
+  100%{opacity:0;transform:translate(261px,104px)}
+}
+.xmark{animation:pulse 2s ease-in-out infinite}
+
+/* spec plate */
+.spec{padding:34px 28px;margin-top:10px}
+.spec-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:18px;text-align:center}
+@media(max-width:860px){.spec-grid{grid-template-columns:repeat(3,1fr);gap:26px}}
+@media(max-width:480px){.spec-grid{grid-template-columns:repeat(2,1fr)}}
+.spec-grid b{display:block;font-size:clamp(26px,3.6vw,38px);font-weight:600;color:var(--phos);text-shadow:0 0 16px rgba(0,255,136,.22);font-family:var(--display)}
+.spec-grid span{font-size:10px;letter-spacing:.22em;color:var(--steel-dim)}
+
+/* download */
+.dl{padding:clamp(60px,12vh,120px) 0 80px;text-align:center}
+.dl-inner{display:flex;flex-direction:column;align-items:center}
+.dl .eyebrow{justify-content:center}
+.power{
+  position:relative;width:128px;height:128px;display:grid;place-items:center;margin:6px auto 40px;
+  text-decoration:none;color:var(--phos);
+}
+.pw-ring{
+  position:absolute;inset:0;border-radius:50%;
+  border:1px solid rgba(0,255,136,.3);
+  box-shadow:0 0 0 rgba(0,255,136,.2);
+  animation:ring 2.8s var(--eio) infinite;
+}
+@keyframes ring{0%{box-shadow:0 0 0 0 rgba(0,255,136,.28)}70%{box-shadow:0 0 0 26px rgba(0,255,136,0)}100%{box-shadow:0 0 0 0 rgba(0,255,136,0)}}
+.pw-core{
+  width:96px;height:96px;border-radius:50%;display:grid;place-items:center;
+  background:linear-gradient(180deg,var(--bezel-hi),var(--panel));
+  border:1px solid rgba(0,255,136,.35);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.06),inset 0 -8px 18px rgba(0,0,0,.5),0 14px 34px rgba(0,0,0,.5);
+  transition:transform .15s var(--eo),box-shadow .25s ease,border-color .25s ease;
+}
+.power:hover .pw-core{border-color:var(--phos);box-shadow:inset 0 2px 0 rgba(255,255,255,.06),inset 0 -8px 18px rgba(0,0,0,.5),0 0 38px rgba(0,255,136,.35)}
+.power:active .pw-core{transform:scale(.94)}
+.dl-plates{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.plate{
+  font-family:var(--mono);text-decoration:none;text-align:left;
+  border:1px solid var(--line-hard);border-radius:5px;padding:12px 22px;min-width:150px;
+  transition:border-color .2s ease,transform .2s var(--eo),background .2s ease;
+  background:rgba(12,12,18,.6);
+}
+.plate b{display:block;font-size:13px;letter-spacing:.16em;color:#e8ecef;font-weight:600}
+.plate span{font-size:11px;color:var(--steel-dim);letter-spacing:.06em}
+.plate:hover{border-color:var(--phos);transform:translateY(-2px);background:rgba(0,255,136,.04)}
+.dl-ver{margin-top:30px;font-size:10.5px;letter-spacing:.18em;color:var(--steel-dim)}
+
+/* footer */
+footer{border-top:1px solid var(--line);padding:34px 0 44px;margin-top:30px}
+.foot{display:flex;justify-content:space-between;gap:26px;align-items:center;flex-wrap:wrap}
+.foot-mid{font-size:10px;letter-spacing:.2em;color:var(--steel-dim);line-height:1.9;text-align:center}
+.foot-serial{font-size:10px;letter-spacing:.14em;color:#4a5158;text-align:right;line-height:1.9}
+@media(max-width:760px){.foot{flex-direction:column;text-align:center}.foot-serial{text-align:center}}
+
+/* ════════════════════════════════════════════════════════════════════
+   THEATER LAYER — cinematic touches over the instrument core
+   ════════════════════════════════════════════════════════════════════ */
+
+/* (A) ambient CRT scanline sweeping the whole page, very faint */
+#sweep{
+  position:fixed;left:0;right:0;height:140px;z-index:2;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(0,255,136,.035) 45%,rgba(0,255,136,.06) 50%,transparent);
+  mix-blend-mode:screen;top:-160px;
+  animation:sweep 9s linear infinite;
+}
+@keyframes sweep{0%{top:-160px}100%{top:100vh}}
+
+/* (B) boot → reveal: the whole stage "powers up" with a brightness flash */
+@keyframes powerup{
+  0%{filter:brightness(2.4) contrast(.4) saturate(0);transform:scale(1.012)}
+  40%{filter:brightness(1.1) contrast(1.05) saturate(1.1)}
+  100%{filter:none;transform:none}
+}
+body.booted main{animation:powerup 1.1s var(--eo) both}
+
+/* (C) hero atmosphere — drifting phosphor particles behind the headline */
+.hero-atmo{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.hero-atmo i{
+  position:absolute;width:2px;height:2px;border-radius:50%;
+  background:var(--phos);opacity:0;
+  box-shadow:0 0 6px var(--phos-glow);
+  animation:drift linear infinite;
+}
+@keyframes drift{
+  0%{opacity:0;transform:translateY(20px)}
+  10%{opacity:.5}
+  90%{opacity:.5}
+  100%{opacity:0;transform:translateY(-120px)}
+}
+
+/* (E) "SIGNAL LOCK" — a one-time acquisition flourish on the scope */
+.lockring{
+  position:absolute;inset:-1px;border-radius:8px;pointer-events:none;z-index:4;
+  border:1px solid var(--phos);opacity:0;
+}
+.scope.locking .lockring{animation:lock 1.1s var(--eo) forwards}
+@keyframes lock{
+  0%{opacity:0;clip-path:inset(0 0 100% 0)}
+  35%{opacity:1;clip-path:inset(0 0 0 0);box-shadow:0 0 0 rgba(0,255,136,.5)}
+  60%{box-shadow:0 0 26px 2px rgba(0,255,136,.4)}
+  100%{opacity:0;box-shadow:0 0 0 rgba(0,255,136,0)}
+}
+.lockmsg{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;
+  font-family:var(--mono);font-size:13px;letter-spacing:.3em;color:var(--phos);
+  text-shadow:0 0 14px var(--phos-glow);pointer-events:none;opacity:0;white-space:nowrap;
+}
+.scope.locking .lockmsg{animation:lockmsg 1.1s var(--eo) forwards}
+@keyframes lockmsg{0%{opacity:0}25%{opacity:1}70%{opacity:1}100%{opacity:0}}
+
+/* (F) section titles draw their own underline on reveal */
+.pstep h2,.topo-head h2{position:relative}
+.pstep h2::after,.topo-head h2::after{
+  content:"";position:absolute;left:0;bottom:-10px;height:2px;width:0;
+  background:linear-gradient(90deg,var(--phos),transparent);
+  box-shadow:0 0 10px var(--phos-glow);
+}
+.rv.on h2::after{animation:drawline .9s var(--eo) .25s forwards}
+@keyframes drawline{to{width:clamp(120px,30%,260px)}}
+
+/* (G) power button arming + surge */
+.power.armed .pw-core{border-color:var(--phos);box-shadow:inset 0 2px 0 rgba(255,255,255,.06),0 0 50px rgba(0,255,136,.5)}
+.surge{position:fixed;inset:0;z-index:90;pointer-events:none;background:var(--phos);opacity:0}
+.surge.go{animation:surge .6s var(--eo) forwards}
+@keyframes surge{0%{opacity:0}12%{opacity:.85}100%{opacity:0}}
+
+/* (H) scroll progress filament */
+#filament{position:fixed;top:0;left:0;height:2px;width:0;z-index:60;
+  background:linear-gradient(90deg,var(--phos-dim),var(--phos));
+  box-shadow:0 0 10px var(--phos-glow);transition:width .1s linear}
+
+/* ── reduced motion: the page must read perfectly with zero motion ── */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  #boot,#sweep,.hero-atmo{display:none}
+  body{--booted:1}
+  body.booted main{animation:none}
+  .hero .stagger,.rv{opacity:1!important;transform:none!important}
+  .pstep h2::after,.topo-head h2::after{width:clamp(120px,30%,260px)}
+  nav{transform:none}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ BOOT ═══ -->
+<div id="boot" role="presentation">
+  <div class="boot-inner">
+    <div class="boot-line">PHANTOM <b>v6.2.1</b> — cryptographic instrument</div>
+    <div class="boot-line">keystore ............... <span class="ok">SEALED</span></div>
+    <div class="boot-line">curve25519 self-test .... <span class="ok">PASS</span></div>
+    <div class="boot-line">xsalsa20-poly1305 ....... <span class="ok">PASS</span></div>
+    <div class="boot-line">dht bootstrap ........... <span class="ok">0 SERVERS REQUIRED</span></div>
+    <div class="boot-line">&gt; initializing interface_</div>
+    <div class="boot-bar"><i></i></div>
+  </div>
+  <div class="skip">CLICK TO SKIP</div>
+</div>
+
+<div id="filament" aria-hidden="true"></div>
+<div id="sweep" aria-hidden="true"></div>
+<div class="surge" id="surge" aria-hidden="true"></div>
+
+<!-- ═══ NAV ═══ -->
+<nav aria-label="Main">
+  <a class="nv-logo" href="#top"><span class="dot"></span>PHANTOM</a>
+  <div class="nv-links">
+    <a href="#protocol">PROTOCOL</a>
+    <a href="#topology">TOPOLOGY</a>
+    <a href="#spec">SPEC</a>
+    <a href="https://crtnoise.gumroad.com/l/Phantom">DOWNLOAD</a>
+  </div>
+  <span class="nv-ver">v6.2.1</span>
+</nav>
+
+<main id="top">
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <div class="hero-atmo" id="heroAtmo" aria-hidden="true"></div>
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow stagger s1"><span class="hex">SIGNAL</span> PEER-TO-PEER · END-TO-END</div>
+      <h1>
+        <span class="ln stagger s2" data-scramble>NO SERVERS.</span>
+        <span class="ln stagger s3" data-scramble>NO ACCOUNTS.</span>
+        <span class="ln hl stagger s4" data-scramble>NO ONE IN THE MIDDLE.</span>
+      </h1>
+      <p class="lede stagger s4">Phantom is encrypted chat where messages travel <b>directly between machines</b>, sealed with keys only you hold. There is no server to subpoena, no account database to leak, and no company reading the room — including ours.</p>
+      <div class="cta-row stagger s4">
+        <a class="btn btn-pri" href="https://crtnoise.gumroad.com/l/Phantom">▸ DOWNLOAD PHANTOM</a>
+        <a class="btn btn-sec" href="#protocol">READ THE PROTOCOL</a>
+      </div>
+      <div class="hero-meta stagger s4">
+        <span><i></i>CURVE25519</span>
+        <span><i></i>XSALSA20-POLY1305</span>
+        <span><i></i>HYPERSWARM DHT</span>
+        <span><i></i>OPEN WIRE FORMAT</span>
+      </div>
+    </div>
+
+    <div class="panel scope stagger s5" id="scopePanel">
+      <span class="lockring"></span>
+      <span class="lockmsg">◢ SIGNAL ACQUIRED ◣</span>
+      <span class="plabel">ENCRYPTION SCOPE — CH 1</span>
+      <span class="screws"><i></i><i></i><i></i><i></i></span>
+      <div class="scope-head">
+        <span class="t">LIVE · TYPE TO TRANSMIT</span>
+        <span class="scope-leds">
+          <span class="led on" title="power"></span>
+          <span class="led tx" id="ledTx" title="tx"></span>
+          <span class="led" title="rx"></span>
+        </span>
+      </div>
+      <div class="crt">
+        <canvas id="scopeCanvas" aria-hidden="true"></canvas>
+        <div class="scan"></div>
+      </div>
+      <div class="scope-io">
+        <label for="ptInput">PLAINTEXT — NEVER LEAVES THIS PAGE</label>
+        <input id="ptInput" type="text" maxlength="64" autocomplete="off" spellcheck="false"
+               placeholder="type something — watch it leave as cipher">
+        <div class="ct-line"><span class="tag">CIPHERTEXT ▸</span><span class="ct" id="ctOut">∅ waiting for signal…</span></div>
+      </div>
+      <div class="scope-foot">
+        <span>NONCE <b id="nonceOut">0x000000</b></span>
+        <span>KEY <b>EPHEMERAL</b></span>
+        <span>MITM <b style="color:var(--warn)">NONE DETECTED</b></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PROTOCOL ═══ -->
+<div class="wrap"><div class="ruler" aria-hidden="true"><svg preserveAspectRatio="none" viewBox="0 0 1000 34"><g stroke="rgba(170,190,180,.22)"><line x1="0" y1="17" x2="1000" y2="17" stroke-width="1"/></g><g id="rulerTicks"></g></svg></div></div>
+
+<section id="protocol" class="proto wrap">
+  <aside class="rail" aria-label="Protocol steps">
+    <div class="rail-t">WIRE PROTOCOL</div>
+    <a href="#op01" data-rail="op01"><b>0x01</b> KEY_EXCHANGE</a>
+    <a href="#op02" data-rail="op02"><b>0x02</b> CHAT</a>
+    <a href="#op10" data-rail="op10"><b>0x10</b> VOICE_OFFER</a>
+    <a href="#op20" data-rail="op20"><b>0x20</b> FILE_START</a>
+    <a href="#op31" data-rail="op31"><b>0x31</b> SYNC_SUMMARY</a>
+    <div class="rail-note">actual opcodes from<br>phantom's wire format</div>
+  </aside>
+
+  <div class="proto-col">
+
+    <!-- 0x01 -->
+    <article class="pstep" id="op01">
+      <div class="eyebrow rv"><span class="hex">0x01</span> KEY_EXCHANGE</div>
+      <h2 class="rv d1" data-scramble-h>Your identity is a keypair</h2>
+      <p class="lede rv d2">No email. No phone number. On first launch Phantom generates a Curve25519 keypair and seals the secret half inside your <b>OS keystore</b>. Your public fingerprint is who you are — verify it out-of-band once, and impersonation is mathematically off the table.</p>
+      <div class="panel fp-panel rv d3">
+        <span class="plabel">IDENTITY MODULE</span>
+        <span class="screws"><i></i><i></i><i></i><i></i></span>
+        <div class="fp-label">FINGERPRINT — SHA-256 / PUBKEY</div>
+        <div class="fp" id="fpDisplay"><span>A7F2</span><span>0E9C</span><span>4B1D</span><span>83E6</span></div>
+        <div class="fp-row">
+          <div class="qr" aria-hidden="true"><i></i></div>
+          <div class="fp-copy">Compare four groups in person, over a call, or by QR. <b>Match = sealed channel.</b> The key never leaves your machine.</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 0x02 -->
+    <article class="pstep" id="op02">
+      <div class="eyebrow rv"><span class="hex">0x02</span> CHAT</div>
+      <h2 class="rv d1" data-scramble-h>Rooms without a landlord</h2>
+      <p class="lede rv d2">A room is a checksummed code — <span class="mono" style="color:var(--phos-dim)">PH-XXXX-XXXX-XXXX-YY</span> — hashed into a DHT topic. Anyone holding the code meets there; nobody hosts it. Channels, replies, pins, edits and delete-for-all all travel encrypted, and owner / admin permissions are <b>enforced by every peer independently</b> — there is no server to bribe.</p>
+      <div class="panel chat-panel rv d3">
+        <span class="plabel">ROOM — PH-7Q2M-V4XK-9DTL-3F</span>
+        <span class="screws"><i></i><i></i><i></i><i></i></span>
+        <div class="chat-feed" id="chatFeed"></div>
+        <div class="chat-meta mono">3 PEERS · ALL SESSIONS SEALED · 0 RELAYS</div>
+      </div>
+    </article>
+
+    <!-- 0x10 -->
+    <article class="pstep" id="op10">
+      <div class="eyebrow rv"><span class="hex">0x10</span> VOICE_OFFER</div>
+      <h2 class="rv d1" data-scramble-h>Voice that never touches a tower</h2>
+      <p class="lede rv d2">Calls are direct WebRTC streams between peers — signaled over Phantom's own encrypted channel, never through a vendor's switchboard. Screen sharing asks <b>you</b> which window to expose, with an explicit picker. Nothing is captured silently.</p>
+      <div class="panel vu-panel rv d3">
+        <span class="plabel">VOICE CHANNEL — VU</span>
+        <span class="screws"><i></i><i></i><i></i><i></i></span>
+        <div class="vu" id="vuMeter" aria-hidden="true"></div>
+        <div class="chat-meta mono">P2P STREAM · OPUS · DTLS-SRTP</div>
+      </div>
+    </article>
+
+    <!-- 0x20 -->
+    <article class="pstep" id="op20">
+      <div class="eyebrow rv"><span class="hex">0x20</span> FILE_START</div>
+      <h2 class="rv d1" data-scramble-h>Files in sealed chunks</h2>
+      <p class="lede rv d2">Transfers are sliced into 512&nbsp;KB chunks, each one independently encrypted and streamed peer-to-peer — up to 512&nbsp;MB per file. Hard buffer caps mean a hostile peer can't flood your memory or your disk. No cloud bucket ever sees a byte.</p>
+      <div class="panel file-panel rv d3">
+        <span class="plabel">TRANSFER — blueprint_v3.pdf</span>
+        <span class="screws"><i></i><i></i><i></i><i></i></span>
+        <div class="chunks" id="chunkGrid" aria-hidden="true"></div>
+        <div class="chat-meta mono"><span id="chunkPct">0%</span> · 512KB CHUNKS · EACH SEALED INDEPENDENTLY</div>
+      </div>
+    </article>
+
+    <!-- 0x31 -->
+    <article class="pstep" id="op31">
+      <div class="eyebrow rv"><span class="hex">0x31</span> SYNC_SUMMARY</div>
+      <h2 class="rv d1" data-scramble-h>History heals itself</h2>
+      <p class="lede rv d2">Went offline? When you reconnect, peers exchange summaries of what they hold and quietly send back whatever you missed — <b>encrypted, deduplicated, no relay involved</b>. The room's memory lives in the room, not in a datacenter.</p>
+      <div class="panel sync-panel rv d3">
+        <span class="plabel">OFFLINE RECOVERY</span>
+        <span class="screws"><i></i><i></i><i></i><i></i></span>
+        <svg viewBox="0 0 560 120" class="sync-svg" aria-hidden="true">
+          <g font-family="IBM Plex Mono" font-size="10" fill="#6c737b" letter-spacing="2">
+            <text x="40" y="104" text-anchor="middle">PEER A</text>
+            <text x="520" y="104" text-anchor="middle">PEER B</text>
+          </g>
+          <circle cx="40" cy="60" r="14" fill="none" stroke="#00ff88" stroke-width="1.4"/>
+          <circle cx="520" cy="60" r="14" fill="none" stroke="#00ff88" stroke-width="1.4"/>
+          <line x1="60" y1="60" x2="500" y2="60" stroke="rgba(0,255,136,.25)" stroke-dasharray="3 5"/>
+          <circle class="pkt p1" r="3.2" cy="60" fill="#00ff88"/>
+          <circle class="pkt p2" r="3.2" cy="60" fill="#00ff88"/>
+          <circle class="pkt p3" r="3.2" cy="60" fill="#56d49c"/>
+        </svg>
+        <div class="chat-meta mono">SUMMARY ▸ REQUEST ◂ MESSAGES ▸ · MERGE BY MSG-ID</div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ═══ TOPOLOGY ═══ -->
+<div class="wrap"><div class="ruler" aria-hidden="true"><svg preserveAspectRatio="none" viewBox="0 0 1000 34"><line x1="0" y1="17" x2="1000" y2="17" stroke="rgba(170,190,180,.22)"/><g class="rt2"></g></svg></div></div>
+
+<section id="topology" class="wrap topo">
+  <div class="topo-head">
+    <div class="eyebrow rv"><span class="hex">DIAGRAM</span> THE TOPOLOGY IS THE SECURITY</div>
+    <h2 class="rv d1" data-scramble-h>Delete the middleman, delete the threat</h2>
+    <p class="lede rv d2">Every "secure" platform with a server in the middle still owns your metadata: who talked, when, how often, from where. Phantom's answer is structural — <b>there is nothing in the middle to compromise.</b></p>
+  </div>
+  <div class="topo-grid">
+    <div class="panel topo-card bad rv d2">
+      <span class="plabel">THEM — CLIENT / SERVER</span>
+      <span class="screws"><i></i><i></i><i></i><i></i></span>
+      <svg viewBox="0 0 320 150" aria-hidden="true">
+        <g font-family="IBM Plex Mono" font-size="9" fill="#6c737b" letter-spacing="1.5">
+          <text x="44" y="138" text-anchor="middle">YOU</text>
+          <text x="160" y="34" text-anchor="middle" fill="#ff3b5c">THEIR SERVER</text>
+          <text x="276" y="138" text-anchor="middle">THEM</text>
+        </g>
+        <circle cx="44" cy="108" r="13" fill="none" stroke="#6c737b" stroke-width="1.3"/>
+        <rect x="134" y="44" width="52" height="34" rx="4" fill="none" stroke="#ff3b5c" stroke-width="1.3"/>
+        <path d="M55 99 L138 66" stroke="#ff3b5c" stroke-width="1.2" stroke-dasharray="4 4" class="flow-bad"/>
+        <path d="M182 66 L265 99" stroke="#ff3b5c" stroke-width="1.2" stroke-dasharray="4 4" class="flow-bad"/>
+        <circle cx="276" cy="108" r="13" fill="none" stroke="#6c737b" stroke-width="1.3"/>
+        <g class="xmark" stroke="#ff3b5c" stroke-width="2" stroke-linecap="round">
+          <line x1="148" y1="50" x2="172" y2="72"/><line x1="172" y1="50" x2="148" y2="72"/>
+        </g>
+      </svg>
+      <ul class="topo-list">
+        <li>logs who · when · from where</li>
+        <li>single point of seizure</li>
+        <li>terms can change overnight</li>
+      </ul>
+    </div>
+    <div class="panel topo-card good rv d3">
+      <span class="plabel">PHANTOM — PEER / PEER</span>
+      <span class="screws"><i></i><i></i><i></i><i></i></span>
+      <svg viewBox="0 0 320 150" aria-hidden="true">
+        <g font-family="IBM Plex Mono" font-size="9" fill="#6c737b" letter-spacing="1.5">
+          <text x="44" y="138" text-anchor="middle">YOU</text>
+          <text x="276" y="138" text-anchor="middle">THEM</text>
+          <text x="160" y="64" text-anchor="middle" fill="#56d49c">SEALED LINK</text>
+        </g>
+        <circle cx="44" cy="108" r="13" fill="none" stroke="#00ff88" stroke-width="1.4"/>
+        <circle cx="276" cy="108" r="13" fill="none" stroke="#00ff88" stroke-width="1.4"/>
+        <path d="M59 104 C120 78,200 78,261 104" fill="none" stroke="#00ff88" stroke-width="1.4" class="flow-good"/>
+        <circle class="topo-pkt" r="3" fill="#00ff88"/>
+      </svg>
+      <ul class="topo-list good">
+        <li>direct encrypted socket</li>
+        <li>DHT discovery — no broker</li>
+        <li>nothing to seize, nothing to leak</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ SPEC PLATE ═══ -->
+<section id="spec" class="wrap">
+  <div class="panel spec rv">
+    <span class="plabel">NAMEPLATE — SPECIFICATIONS</span>
+    <span class="screws"><i></i><i></i><i></i><i></i></span>
+    <div class="spec-grid mono">
+      <div><b data-count="0">0</b><span>SERVERS</span></div>
+      <div><b data-count="0">0</b><span>ACCOUNTS</span></div>
+      <div><b data-count="0">0</b><span>TRACKERS</span></div>
+      <div><b data-count="25519">0</b><span>THE CURVE</span></div>
+      <div><b data-count="256">0</b><span>BIT TOPICS</span></div>
+      <div><b data-count="512">0</b><span>MB / FILE</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ DOWNLOAD ═══ -->
+<div class="wrap"><div class="ruler" aria-hidden="true"><svg preserveAspectRatio="none" viewBox="0 0 1000 34"><line x1="0" y1="17" x2="1000" y2="17" stroke="rgba(170,190,180,.22)"/><g class="rt3"></g></svg></div></div>
+
+<section id="download" class="dl">
+  <div class="wrap dl-inner">
+    <div class="eyebrow rv"><span class="hex">PWR</span> READY WHEN YOU ARE</div>
+    <h2 class="rv d1" data-scramble-h>Power on</h2>
+    <p class="lede rv d2" style="margin:0 auto 38px;text-align:center">One portable binary. No installer phoning home, no signup wall.<br>Open it, pick a name, you're on the wire.</p>
+    <div class="rv d3">
+      <a href="#" class="power" id="powerBtn" aria-label="Download Phantom v6.2.1">
+        <span class="pw-ring"></span>
+        <span class="pw-core">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v9"/><path d="M5.5 5.5a9 9 0 1 0 13 0"/></svg>
+        </span>
+      </a>
+    </div>
+    <div class="dl-plates rv d3">
+      <a class="plate" href="#"><b>WINDOWS</b><span>portable .exe</span></a>
+      <a class="plate" href="#"><b>MACOS</b><span>.dmg</span></a>
+      <a class="plate" href="#"><b>LINUX</b><span>AppImage</span></a>
+    </div>
+    <div class="dl-ver mono rv d3">v6.2.1 · SHA-256 VERIFIED · WIRE-COMPATIBLE WITH v6.2.0 PEERS</div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <div class="nv-logo"><span class="dot"></span>PHANTOM</div>
+    <div class="foot-mid mono">A CRYPTOGRAPHIC INSTRUMENT — NOT A PLATFORM.<br>OPEN WIRE FORMAT. AUDIT THE BYTES.</div>
+    <div class="foot-serial mono">NEXUS CO. · UNIT NX-PH-0621<br>MADE IN ÎLE-DE-FRANCE</div>
+  </div>
+</footer>
+
+</main>
+<script>
+(function(){
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ── BOOT ─────────────────────────────────────────────────────── */
+  const boot = document.getElementById('boot');
+  function dismissBoot(){
+    if(document.body.classList.contains('booted')) return;
+    boot.classList.add('off');
+    document.body.classList.add('booted');
+  }
+  if(reduce){ document.body.classList.add('booted'); }
+  else{
+    setTimeout(dismissBoot, 2300);
+    boot.addEventListener('click', dismissBoot);
+  }
+
+  /* ── SCRAMBLE TEXT (hero + headings) ──────────────────────────── */
+  const GLYPHS='ABCDEF0123456789#%@&$/\\<>=+*';
+  function scramble(el, delay){
+    const final=el.textContent; el.dataset.f=final;
+    if(reduce) return;
+    let frame=0; const len=final.length;
+    const start=()=>{
+      let i=0;
+      const tick=()=>{
+        let out='';
+        for(let c=0;c<len;c++){
+          if(final[c]===' '){out+=' ';continue;}
+          out += c<i ? final[c] : GLYPHS[(Math.random()*GLYPHS.length)|0];
+        }
+        el.textContent=out;
+        if(i<len){ if(frame%2===0)i++; frame++; requestAnimationFrame(tick); }
+        else el.textContent=final;
+      };
+      tick();
+    };
+    setTimeout(start, delay);
+  }
+  // hero lines run after boot
+  const heroLines=[...document.querySelectorAll('.hero [data-scramble]')];
+  setTimeout(()=>heroLines.forEach((el,i)=>scramble(el,i*120)), reduce?0:600);
+
+  /* ── SCROLL REVEAL + heading scramble on first view ───────────── */
+  const io=new IntersectionObserver((ents)=>{
+    ents.forEach(e=>{
+      if(!e.isIntersecting) return;
+      e.target.classList.add('on');
+      const h=e.target.querySelector?.('[data-scramble-h]');
+      if(h && !h.dataset.done){ h.dataset.done=1; scramble(h,80); }
+      if(e.target.matches('[data-scramble-h]') && !e.target.dataset.done){ e.target.dataset.done=1; scramble(e.target,80); }
+      io.unobserve(e.target);
+    });
+  },{threshold:.18,rootMargin:'0px 0px -8% 0px'});
+  document.querySelectorAll('.rv,[data-scramble-h]').forEach(el=>io.observe(el));
+
+  /* ── RAIL SCROLLSPY ───────────────────────────────────────────── */
+  const steps=[...document.querySelectorAll('.pstep')];
+  const railLinks=new Map([...document.querySelectorAll('.rail a')].map(a=>[a.dataset.rail,a]));
+  let spyActive=null;
+  function updateSpy(){
+    // Pick the step whose top is closest to ~38% down the viewport but
+    // still above it. Threshold observers fail on short trailing sections
+    // (they never reach 40% visibility at page bottom); this never does.
+    const line=innerHeight*0.38;
+    let best=null,bestDist=Infinity;
+    for(const s of steps){
+      const r=s.getBoundingClientRect();
+      if(r.top<=line+40){
+        const d=Math.abs(r.top-line);
+        if(r.top<=line && d<bestDist){bestDist=d;best=s;}
+      }
+    }
+    // Fallback: if scrolled past everything, last step wins.
+    if(!best){
+      for(const s of steps){ if(s.getBoundingClientRect().top<line) best=s; }
+    }
+    const id=best?best.id:steps[0].id;
+    if(id!==spyActive){
+      spyActive=id;
+      railLinks.forEach(a=>a.classList.remove('act'));
+      railLinks.get(id)?.classList.add('act');
+    }
+  }
+  let spyTick=false;
+  addEventListener('scroll',()=>{
+    if(spyTick) return; spyTick=true;
+    requestAnimationFrame(()=>{updateSpy();spyTick=false;});
+  },{passive:true});
+  updateSpy();
+
+  /* ── HERO SCOPE: live cipher trace ────────────────────────────── */
+  const cv=document.getElementById('scopeCanvas');
+  const ctx=cv.getContext('2d');
+  const ledTx=document.getElementById('ledTx');
+  const ctOut=document.getElementById('ctOut');
+  const nonceOut=document.getElementById('nonceOut');
+  const ptInput=document.getElementById('ptInput');
+  let energy=0, t=0, W=0, H=0, dpr=Math.min(devicePixelRatio||1,2);
+  function size(){ const r=cv.getBoundingClientRect(); W=cv.width=r.width*dpr; H=cv.height=230*dpr; }
+  size(); addEventListener('resize',size);
+  const b64=c=>'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'[c%64];
+  function makeCipher(s){
+    if(!s) return '∅ waiting for signal…';
+    let seed=0; for(const ch of s) seed=(seed*31+ch.charCodeAt(0))>>>0;
+    let out=''; const n=Math.max(24, s.length*3);
+    for(let i=0;i<n;i++){ seed=(seed*1103515245+12345)&0x7fffffff; out+=b64(seed>>7); }
+    return out;
+  }
+  ptInput.addEventListener('input',()=>{
+    const v=ptInput.value;
+    energy=Math.min(1, v.length/14 + .25);
+    ctOut.textContent = makeCipher(v).slice(0, 52) || '∅ waiting for signal…';
+    nonceOut.textContent='0x'+(((Math.random()*0xffffff)|0).toString(16).padStart(6,'0').toUpperCase());
+    ledTx.classList.add('hot'); clearTimeout(ptInput._to);
+    ptInput._to=setTimeout(()=>ledTx.classList.remove('hot'),140);
+  });
+  function draw(){
+    t+=0.05; energy*=0.94;
+    ctx.clearRect(0,0,W,H);
+    const mid=H/2;
+    // grid
+    ctx.strokeStyle='rgba(0,255,136,.07)';ctx.lineWidth=1;
+    for(let x=0;x<W;x+=46*dpr){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    ctx.beginPath();ctx.moveTo(0,mid);ctx.lineTo(W,mid);ctx.stroke();
+    // trace
+    const amp=(H*0.30)*(0.16+energy*0.9);
+    ctx.beginPath();
+    for(let x=0;x<=W;x+=2*dpr){
+      const p=x/W;
+      const y=mid
+        + Math.sin(p*22+t)*amp*Math.sin(p*Math.PI)
+        + Math.sin(p*61-t*1.7)*amp*0.35*energy
+        + (Math.random()-.5)*amp*0.12*energy;
+      x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle='rgba(0,255,136,.95)';ctx.lineWidth=1.6*dpr;
+    ctx.shadowColor='rgba(0,255,136,.7)';ctx.shadowBlur=10*dpr;
+    ctx.stroke();ctx.shadowBlur=0;
+    requestAnimationFrame(draw);
+  }
+  if(!reduce) draw();
+  else { ctx.fillStyle='rgba(0,255,136,.9)';ctx.fillRect(0,H/2-1,W,2); }
+
+  /* cursor-follow sheen on scope panel */
+  const sp=document.getElementById('scopePanel');
+  if(!reduce) sp.addEventListener('pointermove',e=>{
+    const r=sp.getBoundingClientRect();
+    sp.style.setProperty('--mx',((e.clientX-r.left)/r.width*100)+'%');
+    sp.style.setProperty('--my',((e.clientY-r.top)/r.height*100)+'%');
+  });
+
+  /* ── RULER TICKS ──────────────────────────────────────────────── */
+  document.querySelectorAll('.ruler svg g').forEach(g=>{
+    let s='';
+    for(let i=0;i<=50;i++){const x=i*20;const tall=i%5===0;
+      s+=`<line x1="${x}" y1="17" x2="${x}" y2="${tall?5:11}" stroke="rgba(170,190,180,.28)" stroke-width="1"/>`;}
+    g.innerHTML=s;
+  });
+
+  /* ── CHAT FEED playback ───────────────────────────────────────── */
+  const feed=document.getElementById('chatFeed');
+  const script=[
+    {me:0,nm:'k1.4e',av:'K',t:'fingerprint matches. channel sealed ⌖',pin:1},
+    {me:1,nm:'YOU',av:'Y',t:'good. no relay in the path?'},
+    {me:0,nm:'k1.4e',av:'K',t:'zero. straight peer socket.'},
+    {me:1,nm:'YOU',av:'Y',t:'ship the blueprint then →'},
+  ];
+  let played=false;
+  new IntersectionObserver((e,obs)=>{
+    if(e[0].isIntersecting && !played){
+      played=true;
+      script.forEach((m,i)=>{
+        const el=document.createElement('div');
+        el.className='cmsg '+(m.me?'me':'them');
+        el.innerHTML=`<div class="av">${m.av}</div><div class="bd"><div class="nm"><b>${m.nm}</b></div><div class="txt${m.pin?' pinned':''}">${m.t}</div></div>`;
+        feed.appendChild(el);
+        setTimeout(()=>el.classList.add('in'), reduce?0:300+i*520);
+      });
+      obs.disconnect();
+    }
+  },{threshold:.4}).observe(feed);
+
+  /* ── THEATER ───────────────────────────────────────────────────── */
+
+  /* hero atmosphere particles */
+  const atmo=document.getElementById('heroAtmo');
+  if(atmo && !reduce){
+    for(let i=0;i<22;i++){
+      const s=document.createElement('i');
+      s.style.left=Math.random()*100+'%';
+      s.style.top=(60+Math.random()*40)+'%';
+      s.style.animationDuration=(7+Math.random()*8)+'s';
+      s.style.animationDelay=(-Math.random()*12)+'s';
+      const sc=.6+Math.random()*1.4; s.style.transform='scale('+sc+')';
+      atmo.appendChild(s);
+    }
+  }
+
+  /* scroll filament + hero parallax (rAF-throttled, passive) */
+  const filament=document.getElementById('filament');
+  const heroH1=document.querySelector('.hero h1');
+  let pTick=false;
+  function onScroll(){
+    if(pTick) return; pTick=true;
+    requestAnimationFrame(()=>{
+      const sc=scrollY;
+      const max=document.documentElement.scrollHeight-innerHeight;
+      filament.style.width=(max>0?(sc/max*100):0)+'%';
+      if(!reduce && sc<innerHeight){
+        heroH1.style.transform='translateY('+(sc*0.12)+'px)';
+        if(atmo) atmo.style.transform='translateY('+(sc*-0.18)+'px)';
+      }
+      pTick=false;
+    });
+  }
+  addEventListener('scroll',onScroll,{passive:true});
+  onScroll();
+
+  /* SIGNAL LOCK flourish — fires shortly after boot so the hero scope
+     gets a cinematic acquisition moment */
+  const scopeEl=document.getElementById('scopePanel');
+  let locked=false;
+  function fireLock(){
+    if(locked||reduce) return; locked=true;
+    scopeEl.classList.add('locking');
+    setTimeout(()=>scopeEl.classList.remove('locking'),1300);
+  }
+  if(!reduce) setTimeout(fireLock, 2600);
+
+  /* POWER button: arm on hover, surge flash on click */
+  const powerBtn=document.getElementById('powerBtn');
+  const surge=document.getElementById('surge');
+  if(powerBtn){
+    powerBtn.addEventListener('pointerenter',()=>powerBtn.classList.add('armed'));
+    powerBtn.addEventListener('pointerleave',()=>powerBtn.classList.remove('armed'));
+    powerBtn.addEventListener('click',(e)=>{
+      e.preventDefault();
+      if(!reduce){ surge.classList.remove('go'); void surge.offsetWidth; surge.classList.add('go'); }
+    });
+  }
+
+  /* ── VU METER bars ────────────────────────────────────────────── */
+  const vu=document.getElementById('vuMeter');
+  for(let i=0;i<28;i++){const b=document.createElement('i');
+    b.style.setProperty('--h',(35+Math.random()*55)+'%');
+    b.style.animationDelay=(-Math.random()*1.1)+'s';
+    b.style.animationDuration=(0.7+Math.random()*0.7)+'s';
+    vu.appendChild(b);}
+
+  /* ── FILE CHUNKS fill ─────────────────────────────────────────── */
+  const grid=document.getElementById('chunkGrid');
+  const pct=document.getElementById('chunkPct');
+  const cells=[];
+  for(let i=0;i<64;i++){const c=document.createElement('i');grid.appendChild(c);cells.push(c);}
+  new IntersectionObserver((e,obs)=>{
+    if(e[0].isIntersecting){
+      obs.disconnect();
+      if(reduce){cells.forEach(c=>c.classList.add('full'));pct.textContent='100%';return;}
+      let n=0;
+      const iv=setInterval(()=>{
+        if(n>=cells.length){clearInterval(iv);return;}
+        cells[n].classList.add('full');n++;
+        pct.textContent=Math.round(n/cells.length*100)+'%';
+      },28);
+    }
+  },{threshold:.4}).observe(grid);
+
+  /* ── SPEC counters ────────────────────────────────────────────── */
+  new IntersectionObserver((e,obs)=>{
+    if(!e[0].isIntersecting) return;
+    obs.disconnect();
+    document.querySelectorAll('.spec-grid b').forEach(b=>{
+      const target=+b.dataset.count;
+      if(reduce||target===0){b.textContent=target;return;}
+      let v=0;const step=Math.max(1,Math.ceil(target/40));
+      const iv=setInterval(()=>{v+=step;if(v>=target){v=target;clearInterval(iv);}b.textContent=v;},22);
+    });
+  },{threshold:.5}).observe(document.querySelector('.spec'));
+
+})();
+</script>
+</body>
+</html>
